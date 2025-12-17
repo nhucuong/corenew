@@ -16,12 +16,15 @@ export default function MySlider<T>({
 	className = '',
 	itemPerRow = 5,
 	data: dataProp = [],
-	renderItem = () => <div></div>,
+	renderItem = () => <div />,
 	arrowBtnClass = 'top-1/2 -translate-y-1/2',
 }: MySliderProps<T>) {
-	const data = dataProp.filter((item) => item)
+	// ✅ Type-safe filter
+	const data = dataProp.filter(
+		(item): item is T => Boolean(item),
+	)
 
-	const [numberOfItems, setNumberOfitem] = useState(itemPerRow)
+	const [numberOfItems, setNumberOfItem] = useState(itemPerRow)
 	const windowWidth = useWindowSize().width
 	const sliderRef = useRef<HTMLDivElement>(null)
 
@@ -30,37 +33,45 @@ export default function MySlider<T>({
 
 	useEffect(() => {
 		if (itemPerRow <= 1) {
-			return setNumberOfitem(1)
+			setNumberOfItem(1)
+			return
 		}
 
-		if (windowWidth <= 320) {
-			return setNumberOfitem(1)
+		if (!windowWidth || windowWidth <= 320) {
+			setNumberOfItem(1)
+			return
 		}
+
 		if (windowWidth < 500) {
-			return setNumberOfitem(itemPerRow - 3 <= 1 ? 1.2 : itemPerRow - 3)
-		}
-		if (windowWidth < 1024) {
-			return setNumberOfitem(itemPerRow - 2 <= 1 ? 1.2 : itemPerRow - 2)
-		}
-		if (windowWidth < 1280) {
-			return setNumberOfitem(itemPerRow - 1 <= 1 ? 1.2 : itemPerRow - 1)
+			setNumberOfItem(itemPerRow - 3 <= 1 ? 1.2 : itemPerRow - 3)
+			return
 		}
 
-		setNumberOfitem(itemPerRow)
+		if (windowWidth < 1024) {
+			setNumberOfItem(itemPerRow - 2 <= 1 ? 1.2 : itemPerRow - 2)
+			return
+		}
+
+		if (windowWidth < 1280) {
+			setNumberOfItem(itemPerRow - 1 <= 1 ? 1.2 : itemPerRow - 1)
+			return
+		}
+
+		setNumberOfItem(itemPerRow)
 	}, [itemPerRow, windowWidth])
 
 	return (
 		<div className={`nc-MySlider relative ${className}`}>
 			<div
-				className="hiddenScrollbar relative -mx-2 flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden py-1 lg:-mx-4"
 				ref={sliderRef}
+				className="hiddenScrollbar relative -mx-2 flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden py-1 lg:-mx-4"
 			>
 				{data.map((item, indx) => (
 					<div
-						className={`mySnapItem shrink-0 snap-start px-2 lg:px-4`}
 						key={indx}
+						className="mySnapItem shrink-0 snap-start px-2 lg:px-4"
 						style={{
-							width: `calc(1/${numberOfItems} * 100%)`,
+							width: `calc(100% / ${numberOfItems})`,
 						}}
 					>
 						{renderItem(item, indx)}

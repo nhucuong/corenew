@@ -1,47 +1,51 @@
-import { useEffect, useState } from 'react'
-import _ from 'lodash'
+import { RefObject, useCallback, useEffect, useState } from 'react'
+
+interface UseSnapSliderProps {
+	sliderRef: RefObject<HTMLDivElement | null>
+}
+
+interface UseSnapSliderReturn {
+	scrollToNextSlide: () => void
+	scrollToPrevSlide: () => void
+	isAtStart: boolean
+	isAtEnd: boolean
+}
 
 export default function useSnapSlider({
 	sliderRef,
-}: {
-	sliderRef: React.RefObject<HTMLDivElement>
-}) {
-	const [isAtEnd, setIsAtEnd] = useState(false)
+}: UseSnapSliderProps): UseSnapSliderReturn {
 	const [isAtStart, setIsAtStart] = useState(true)
+	const [isAtEnd, setIsAtEnd] = useState(false)
 
-	const get_slider_item_size = () =>
-		sliderRef.current?.querySelector('.mySnapItem')?.clientWidth || 0
+	const checkPosition = useCallback(() => {
+		const el = sliderRef.current
+		if (!el) return
 
-	useEffect(() => {
-		const slider = sliderRef.current
-		if (!slider) return
-
-		const handleScroll = _.debounce(() => {
-			const slider = sliderRef.current
-			if (!slider) return
-
-			setIsAtEnd(
-				slider.scrollLeft + slider.clientWidth >= slider.scrollWidth - 50,
-			)
-			setIsAtStart(slider.scrollLeft < 50)
-		}, 600)
-
-		slider.addEventListener('scroll', handleScroll)
-		return () => {
-			slider.removeEventListener('scroll', handleScroll)
-		}
+		setIsAtStart(el.scrollLeft <= 0)
+		setIsAtEnd(
+			Math.ceil(el.scrollLeft + el.clientWidth) >= el.scrollWidth,
+		)
 	}, [sliderRef])
 
-	function scrollToNextSlide() {
+	useEffect(() => {
+		const el = sliderRef.current
+		if (!el) return
+
+		checkPosition()
+		el.addEventListener('scroll', checkPosition)
+		return () => el.removeEventListener('scroll', checkPosition)
+	}, [checkPosition, sliderRef])
+
+	const scrollToNextSlide = () => {
 		sliderRef.current?.scrollBy({
-			left: get_slider_item_size(),
+			left: sliderRef.current.clientWidth,
 			behavior: 'smooth',
 		})
 	}
 
-	function scrollToPrevSlide() {
+	const scrollToPrevSlide = () => {
 		sliderRef.current?.scrollBy({
-			left: -get_slider_item_size(),
+			left: -sliderRef.current.clientWidth,
 			behavior: 'smooth',
 		})
 	}
@@ -49,7 +53,7 @@ export default function useSnapSlider({
 	return {
 		scrollToNextSlide,
 		scrollToPrevSlide,
-		isAtEnd,
 		isAtStart,
+		isAtEnd,
 	}
 }
